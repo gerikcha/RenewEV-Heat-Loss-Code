@@ -18,7 +18,7 @@ def building_characteristics():
     and create a data frame from it.
     """
 
-    bc = pd.read_csv(r'Building Characteristics_real.csv', na_values=["N"], keep_default_na=True)
+    bc = pd.read_csv(r'Building Characteristics.csv', na_values=["N"], keep_default_na=True)
 
     return bc
 
@@ -66,6 +66,7 @@ def thphprop(BCdf):
         EngToolbox Absorbed Solar Radiation by Material, Tile, clay red
         EngToolbox Absorbed Solar Radiation by Surface Color, Green, red and brown
         """
+    """
     thphp = {'Material': ['Concrete', 'Insulation', 'Glass', 'Air', 'Tile', 'Wood', 'Soil'],
              'Density': [2300, 55, 2500, 1.2, None, 720, 2050],  # kg/m³
              'Specific_Heat': [880, 1210, 750, 1000, None, 1255, 1840],  # J/kg.K
@@ -74,6 +75,10 @@ def thphprop(BCdf):
              'SW_Transmittance': [0, 0, 0.83, 1, 0, 0, 0],
              'SW_Absorptivity': [0.25, 0.25, 0.1, 0, 0.64, 0.6, None],
              'Albedo': [0.75, 0.75, 0.07, 0, 0.36, 0.4, None]}  # albedo + SW transmission + SW absorptivity = 1
+    """
+
+    thphp = pd.read_excel("Building Charateristics.xlsx", sheet_name='Materials', index_col=0, header=0, usecols="A:H")
+
 
     thphp = pd.DataFrame(thphp)
 
