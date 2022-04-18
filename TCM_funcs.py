@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import dm4bem
+import xlrd
 
 
 def building_characteristics():
@@ -18,10 +19,15 @@ def building_characteristics():
     and create a data frame from it.
     """
 
-    bc = pd.read_csv(r'Building Characteristics.csv', na_values=["N"], keep_default_na=True)
+    bc = pd.read_excel("Building Characteristics.xlsx", sheet_name='Elements', na_values=["N"], keep_default_na=True,
+                       header=0)
 
     return bc
 
+def inputs():
+    ip = pd.read_excel("Building Characteristics.xlsx", sheet_name='Inputs', na_values=["N"], keep_default_na=True,
+                       index_col=0, usecols="A:B")
+    return ip
 
 def thphprop(BCdf):
     """
@@ -57,30 +63,9 @@ def thphprop(BCdf):
             Clay tile, hollow p.989
             Wood, oak p.989
             Soil p.994
-
-        EngToolbox Emissivity Coefficient Materials, Glass, pyrex
-        EngToolbox Emissivity Coefficient Materials, Clay
-        EngToolbox Emissivity Coefficient Materials, Wood Oak, planned
-        EngToolbox Absorbed Solar Radiation by Surface Color, white smooth surface
-        EngToolbox Optical properties of some typical glazing mat Window glass
-        EngToolbox Absorbed Solar Radiation by Material, Tile, clay red
-        EngToolbox Absorbed Solar Radiation by Surface Color, Green, red and brown
-        """
-    """
-    thphp = {'Material': ['Concrete', 'Insulation', 'Glass', 'Air', 'Tile', 'Wood', 'Soil'],
-             'Density': [2300, 55, 2500, 1.2, None, 720, 2050],  # kg/m³
-             'Specific_Heat': [880, 1210, 750, 1000, None, 1255, 1840],  # J/kg.K
-             'Conductivity': [1.4, 0.027, 1.4, None, 0.52, 0.16, 0.52],  # W/m.K
-             'LW_Emissivity': [0.9, 0, 0.9, 0, 0.91, 0.885, None],
-             'SW_Transmittance': [0, 0, 0.83, 1, 0, 0, 0],
-             'SW_Absorptivity': [0.25, 0.25, 0.1, 0, 0.64, 0.6, None],
-             'Albedo': [0.75, 0.75, 0.07, 0, 0.36, 0.4, None]}  # albedo + SW transmission + SW absorptivity = 1
     """
 
-    thphp = pd.read_excel("Building Charateristics.xlsx", sheet_name='Materials', index_col=0, header=0, usecols="A:H")
-
-
-    thphp = pd.DataFrame(thphp)
+    thphp = pd.read_excel("Building Characteristics.xlsx", sheet_name='Materials', header=0, usecols="A:H")
 
     # add empty columns for thermo-physical properties
     BCdf = BCdf.reindex(columns=BCdf.columns.to_list() + ['rad_s', 'density_1', 'specific_heat_1', 'conductivity_1',
@@ -89,9 +74,13 @@ def thphprop(BCdf):
                                                           'LW_emissivity_2', 'SW_transmittance_2', 'SW_absorptivity_2',
                                                           'albedo_2', 'density_3', 'specific_heat_3', 'conductivity_3',
                                                           'LW_emissivity_3', 'SW_transmittance_3', 'SW_absorptivity_3',
-                                                          'albedo_3'])
+                                                          'albedo_3', 'density_4', 'specific_heat_4', 'conductivity_4',
+                                                          'LW_emissivity_4', 'SW_transmittance_4', 'SW_absorptivity_4',
+                                                          'albedo_4', 'density_5', 'specific_heat_5', 'conductivity_5',
+                                                          'LW_emissivity_5', 'SW_transmittance_5', 'SW_absorptivity_5',
+                                                          'albedo_5'])
 
-    # fill columns with properties for the given materials 1-3 of each element
+    # fill columns with properties for the given materials 1-5 of each element
     for i in range(0, len(BCdf)):
         for j in range(0, len(thphp['Material'])):
             if BCdf.loc[i, 'Material_1'] == thphp.Material[j]:
@@ -123,12 +112,39 @@ def thphprop(BCdf):
                 BCdf.loc[i, 'SW_absorptivity_3'] = thphp.SW_Absorptivity[j]
                 BCdf.loc[i, 'albedo_3'] = thphp.Albedo[j]
 
+        for j in range(0, len(thphp['Material'])):
+            if BCdf.loc[i, 'Material_4'] == thphp.Material[j]:
+                BCdf.loc[i, 'density_4'] = thphp.Density[j]
+                BCdf.loc[i, 'specific_heat_4'] = thphp.Specific_Heat[j]
+                BCdf.loc[i, 'conductivity_4'] = thphp.Conductivity[j]
+                BCdf.loc[i, 'LW_emissivity_4'] = thphp.LW_Emissivity[j]
+                BCdf.loc[i, 'SW_transmittance_4'] = thphp.SW_Transmittance[j]
+                BCdf.loc[i, 'SW_absorptivity_4'] = thphp.SW_Absorptivity[j]
+                BCdf.loc[i, 'albedo_4'] = thphp.Albedo[j]
+
+        for j in range(0, len(thphp['Material'])):
+            if BCdf.loc[i, 'Material_5'] == thphp.Material[j]:
+                BCdf.loc[i, 'density_5'] = thphp.Density[j]
+                BCdf.loc[i, 'specific_heat_5'] = thphp.Specific_Heat[j]
+                BCdf.loc[i, 'conductivity_5'] = thphp.Conductivity[j]
+                BCdf.loc[i, 'LW_emissivity_5'] = thphp.LW_Emissivity[j]
+                BCdf.loc[i, 'SW_transmittance_5'] = thphp.SW_Transmittance[j]
+                BCdf.loc[i, 'SW_absorptivity_5'] = thphp.SW_Absorptivity[j]
+                BCdf.loc[i, 'albedo_5'] = thphp.Albedo[j]
+
     return BCdf
 
 
-def rad(bcp, albedo_sur, latitude, dt, WF, t_start, t_end):
+def rad(bcp, ip):
     # Simulation with weather data
     # ----------------------------
+    albedo_sur = ip.loc['Albedo_sur']['Value']
+    latitude = ip.loc['Latitude']['Value']
+    dt = ip.loc['dt']['Value']
+    WF = ip.loc['WF']['Value']
+    t_start = ip.loc['t_start']['Value']
+    t_end = ip.loc['t_end']['Value']
+
     filename = WF
     start_date = t_start
     end_date = t_end
@@ -161,7 +177,7 @@ def rad(bcp, albedo_sur, latitude, dt, WF, t_start, t_end):
     return data, t
 
 
-def indoor_air(bcp_sur, h, V, Qa, rad_surf_tot):
+def indoor_air(bcp_sur, ip, rad_surf_tot):
     """
     Input:
     bcp_sur, surface column of bcp dataframe
@@ -169,6 +185,10 @@ def indoor_air(bcp_sur, h, V, Qa, rad_surf_tot):
     V, Volume of the room (from bcp)
     Output: TCd, a dictionary of the all the matrices of the thermal circuit of the inside air
     """
+    h_in = ip.loc['h_in']['Value']
+    V = ip.loc['Building Volume']['Value']
+    Qa = ip.loc['Qa']['Value']
+
     nt = len(bcp_sur) + 1
     nq = len(bcp_sur)
 
@@ -178,7 +198,7 @@ def indoor_air(bcp_sur, h, V, Qa, rad_surf_tot):
 
     G = np.zeros(nq)
     for i in range(0, len(G)):
-        G[i] = h['in'] * bcp_sur[i]*1.2
+        G[i] = h_in * bcp_sur[i]*1.2
     G = np.diag(G)
     b = np.zeros(nq)
     C = np.zeros(nt)
@@ -208,6 +228,11 @@ def ventilation(V, V_dot, Kpf, T_set, rad_surf_tot):
     Output:
     TCd, a dictionary of the all the matrices describing the thermal circuit of the ventilation
     """
+    V = ip.loc['Building Volume']['Value']
+    V_dot = (V * ip.loc['ACH']['Value']) / 3600
+    Kpf = ip.loc['Kpf']['Value']
+    T_heating = ip.loc['T_heating']['Value']
+
     Gv = V_dot * 1.2 * 1000  # Va_dot * air['Density'] * air['Specific heat']
     A = np.array([[1],
                   [1]])
@@ -220,26 +245,29 @@ def ventilation(V, V_dot, Kpf, T_set, rad_surf_tot):
     Q[:, 0] = 'NaN'
     T = np.zeros((rad_surf_tot.shape[0], 2))
     T[:, 0] = rad_surf_tot['To']
-    T[:, 1] = T_set['heating']
+    T[:, 1] = T_heating
 
     vent_c = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
     return vent_c
 
 
-def solid_wall_w_ins(bcp_r, h, rad_surf_tot, uc):
+def solid_wall_w_ins(bcp_r, ip, rad_surf_tot, uc):
     """Input:
     bcp_r, one row of the bcp dataframe
     h, convection dataframe
     Output: TCd, a dictionary of the all the matrices of one thermal circuit describing a solid wall with insulation
     """
+    h_in = ip.loc['h_in']['Value']
+    h_out = ip.loc['h_out']['Value']
+
     # Thermal conductances
     # Conduction
     G_cd_cm = bcp_r['conductivity_1'] / bcp_r['Thickness_1'] * bcp_r['Surface']  # concrete
     G_cd_in = bcp_r['conductivity_2'] / bcp_r['Thickness_2'] * bcp_r['Surface']  # insulation
 
     # Convection
-    Gw = h * bcp_r['Surface']  # wall
+    Gw_out = h_out * bcp_r['Surface']  # wall
 
     # Thermal capacities
     Capacity_cm = bcp_r['density_1'] * bcp_r['specific_heat_1'] * bcp_r['Surface'] * bcp_r['Thickness_1']
@@ -259,7 +287,7 @@ def solid_wall_w_ins(bcp_r, h, rad_surf_tot, uc):
     Gcm = 2 * nc * np.array(Gcm)
     Gim = 2 * ni * [G_cd_in]
     Gim = 2 * ni * np.array(Gim)
-    G = np.diag(np.hstack([Gw['out'], Gcm, Gim]))
+    G = np.diag(np.hstack([Gw_out, Gcm, Gim]))
 
     b = np.zeros(nq)
     b[0] = 1
