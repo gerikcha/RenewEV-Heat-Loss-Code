@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import dm4bem
-import xlrd
 
 
 def building_characteristics():
@@ -176,278 +175,28 @@ def rad(bcp, ip):
 
     return data, t
 
-
-def indoor_air(bcp_sur, ip, rad_surf_tot):
-    """
-    Input:
-    bcp_sur, surface column of bcp dataframe
-    h, convection dataframe
-    V, Volume of the room (from bcp)
-    Output: TCd, a dictionary of the all the matrices of the thermal circuit of the inside air
-    """
-    h_in = ip.loc['h_in']['Value']
-    V = ip.loc['Building Volume']['Value']
-    Qa = ip.loc['Qa']['Value']
-
-    nt = len(bcp_sur) + 1
-    nq = len(bcp_sur)
-
-    nq_ones = np.ones(nq)
-    A = np.diag(-nq_ones)
-    A = np.c_[nq_ones, A]
-
-    G = np.zeros(nq)
-    for i in range(0, len(G)):
-        G[i] = h_in * bcp_sur[i]*1.2
-    G = np.diag(G)
-    b = np.zeros(nq)
-    C = np.zeros(nt)
-    C[0] = (1.2 * 1000 * V) / 2  # Capacity air = Density*specific heat*V
-    C = np.diag(C)
-    f = np.zeros(nt)
-    f[0] = 1
-    y = np.zeros(nt)
-    y[0] = 1
-    Q = np.zeros((rad_surf_tot.shape[0], nt))
-    Q[:, 0] = Qa
-    Q[:, 1:nt] = 'NaN'
-    T = np.zeros((rad_surf_tot.shape[0], nq))
-    T[:, 0:nq] = 'NaN'
-
-    TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
-
-    return TCd
-
-
-def ventilation(V, V_dot, Kpf, T_set, rad_surf_tot):
-    """
-    Input:
-    V, Volume of the room (from bcp)
-    V_dot
-    Kp
-    Output:
-    TCd, a dictionary of the all the matrices describing the thermal circuit of the ventilation
-    """
-    V = ip.loc['Building Volume']['Value']
-    V_dot = (V * ip.loc['ACH']['Value']) / 3600
-    Kpf = ip.loc['Kpf']['Value']
-    T_heating = ip.loc['T_heating']['Value']
-
-    Gv = V_dot * 1.2 * 1000  # Va_dot * air['Density'] * air['Specific heat']
-    A = np.array([[1],
-                  [1]])
-    G = np.diag(np.hstack([Gv, Kpf]))
-    b = np.array([1, 1])
-    C = np.array([(1.2 * 1000 * V) / 2])
-    f = 0
-    y = 1
-    Q = np.zeros((rad_surf_tot.shape[0], 1))
-    Q[:, 0] = 'NaN'
-    T = np.zeros((rad_surf_tot.shape[0], 2))
-    T[:, 0] = rad_surf_tot['To']
-    T[:, 1] = T_heating
-
-    vent_c = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
-
-    return vent_c
-
-
-def solid_wall_w_ins(bcp_r, ip, rad_surf_tot, uc):
-    """Input:
-    bcp_r, one row of the bcp dataframe
-    h, convection dataframe
-    Output: TCd, a dictionary of the all the matrices of one thermal circuit describing a solid wall with insulation
-    """
-    h_in = ip.loc['h_in']['Value']
-    h_out = ip.loc['h_out']['Value']
-
-    # Thermal conductances
-    # Conduction
-    G_cd_cm = bcp_r['conductivity_1'] / bcp_r['Thickness_1'] * bcp_r['Surface']  # concrete
-    G_cd_in = bcp_r['conductivity_2'] / bcp_r['Thickness_2'] * bcp_r['Surface']  # insulation
-
-    # Convection
-    Gw_out = h_out * bcp_r['Surface']  # wall
-
-    # Thermal capacities
-    Capacity_cm = bcp_r['density_1'] * bcp_r['specific_heat_1'] * bcp_r['Surface'] * bcp_r['Thickness_1']
-    Capacity_in = bcp_r['density_2'] * bcp_r['specific_heat_2'] * bcp_r['Surface'] * bcp_r['Thickness_2']
-
-    # Thermal network
-    # ---------------
-    nq = 1 + 2 * (int(bcp_r['Mesh_1']) + int(bcp_r['Mesh_2']))
-    nt = 1 + 2 * (int(bcp_r['Mesh_1']) + int(bcp_r['Mesh_2']))
-
-    A = np.eye(nq + 1, nt)
-    A = -np.diff(A, 1, 0).T
-
-    nc = int(bcp_r['Mesh_1'])
-    ni = int(bcp_r['Mesh_2'])
-    Gcm = 2 * nc * [G_cd_cm]
-    Gcm = 2 * nc * np.array(Gcm)
-    Gim = 2 * ni * [G_cd_in]
-    Gim = 2 * ni * np.array(Gim)
-    G = np.diag(np.hstack([Gw_out, Gcm, Gim]))
-
-    b = np.zeros(nq)
-    b[0] = 1
-
-    Ccm = Capacity_cm / nc * np.mod(range(0, 2 * nc), 2)
-    Cim = Capacity_in / ni * np.mod(range(0, 2 * ni), 2)
-    C = np.diag(np.hstack([Ccm, Cim, 0]))
-
-    f = np.zeros(nt)
-    f[0] = f[-1] = 1
-
-    y = np.zeros(nt)
-
-    Q = np.zeros((rad_surf_tot.shape[0], nt))
-    Q[:, 0] = bcp_r['SW_absorptivity_1'] * bcp_r['Surface'] * rad_surf_tot[str(uc)]
-    Q[:, (nt - 1)] = -1
-    uca = uc + 1
-    Q[:, 1:(nt - 1)] = 'NaN'
-
-    T = np.zeros((rad_surf_tot.shape[0], nq))
-    T[:, 0] = rad_surf_tot['To']
-    T[:, 1:nq] = 'NaN'
-
-    TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
-
-    return TCd, uca
-
-
-def window(bcp_r, h, rad_surf_tot, uc):
-    """Input:
-    bcp_r, one row of the bcp dataframe
-    h, convection dataframe
-    Output: TCd, a dictionary of the all the matrices of one thermal circuit describing a solid wall with insulation
-    """
-    nq = 2 * (int(bcp_r['Mesh_1']))
-    nt = 2 * (int(bcp_r['Mesh_1']))
-
-    A = np.array([[1, 0],
-                  [-1, 1]])
-    Ggo = h['out'] * bcp_r['Surface']
-    Ggs = 1 / (1 / Ggo + 1 / (2 * bcp_r['conductivity_1']))
-    G = np.diag(np.hstack([Ggs, 2 * bcp_r['conductivity_1']]))
-    b = np.array([1, 0])
-    C = np.diag([bcp_r['density_1'] * bcp_r['specific_heat_1'] * bcp_r['Surface'] * bcp_r['Thickness_1'], 0])
-    f = np.array([1, 0])
-    y = np.array([0, 0])
-
-    Q = np.zeros((rad_surf_tot.shape[0], nt))
-    IG_surface = bcp_r['Surface'] * rad_surf_tot[str(uc)]
-    IGR = np.zeros([rad_surf_tot.shape[0], 1])
-    IGR = IGR[:, 0] + (bcp_r['SW_transmittance_1'] * bcp_r['Surface'] * rad_surf_tot[str(uc)])
-    IGR = np.array([IGR]).T
-    Q[:, 0] = bcp_r['SW_absorptivity_1'] * IG_surface
-    uca = uc + 1
-    Q[:, 1:nt] = 'NaN'
-
-    T = np.zeros((rad_surf_tot.shape[0], nq))
-    T[:, 0] = rad_surf_tot['To']
-    T[:, 1:nq] = 'NaN'
-
-    TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
-
-    return TCd, uca, IGR
-
-
-def susp_floor(bcp_r, h, V, rad_surf_tot, uc, Tg):
-    """Input:
-    bcp_r, one row of the bcp dataframe
-    h, convection dataframe
-    V, Volume of the room from bcp
-    Output: TCd, a dictionary of the all the matrices of one thermal circuit describing a suspended floor
-    """
-    nq = 1 + 2 * (int(bcp_r['Mesh_2']) + int(bcp_r['Mesh_3']))
-    nt = 1 + 2 * (int(bcp_r['Mesh_2']) + int(bcp_r['Mesh_3']))
-
-    A = np.array([[1, 0, 0, 0, 0],
-                  [-1, 1, 0, 0, 0],
-                  [0, -1, 1, 0, 0],
-                  [0, 0, -1, 1, 0],
-                  [0, 0, 0, -1, 1]])
-    Gw = h * bcp_r['Surface']
-    G_cd = bcp_r['conductivity_3'] / bcp_r['Thickness_3'] * bcp_r['Surface']  # wood
-    G_cd_soil = bcp_r['conductivity_1'] / bcp_r['Thickness_1'] * bcp_r['Surface']
-    G = np.diag(np.hstack(
-        [G_cd_soil, Gw['in'], Gw['in'], G_cd, G_cd]))
-    b = np.array([1, 0, 0, 0, 0])
-    Capacity_w = bcp_r['density_3'] * bcp_r['specific_heat_3'] * bcp_r['Surface'] * bcp_r['Thickness_3']  # wood
-    Capacity_a = bcp_r['density_2'] * bcp_r['specific_heat_2'] * V  # air
-    C = np.diag([0, Capacity_a, 0, Capacity_w, 0])
-    f = np.array([0, 0, 0, 0, 1])
-    y = np.array([0, 0, 0, 0, 0])
-
-    Q = np.zeros((rad_surf_tot.shape[0], nt))
-    Q[:, 0] = bcp_r['SW_absorptivity_3'] * bcp_r['Surface'] * rad_surf_tot[str(uc)]
-    Q[:, (nt - 1)] = -1
-    uca = uc + 1
-    Q[:, 0:(nt - 1)] = 'NaN'
-
-    T = np.zeros((rad_surf_tot.shape[0], nq))
-    T[:, 0] = Tg
-    T[:, 1:nq] = 'NaN'
-
-    TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
-
-    return TCd, uca
-
-
-def flat_roof_w_in(bcp_r, h, rad_surf_tot, uc):
-    """Input:
-    bcp_r, one row of the bcp dataframe
-    h, convection dataframe
-    Output: TCd, a dictionary of the all the matrices of one thermal circuit describing a flat roof with insulation
-    """
-    nq = 1 + 2 * (int(bcp_r['Mesh_1']))
-    nt = 1 + 2 * (int(bcp_r['Mesh_1']))
-
-    A = np.array([[-1, 0, 0],
-                  [-1, 1, 0],
-                  [0, -1, 1]])
-    Gw = h * bcp_r['Surface']
-    G_cd_in = bcp_r['conductivity_2'] / bcp_r['Thickness_2'] * bcp_r['Surface']  # insulation
-    ni = int(bcp_r['Mesh_2'])
-    Gim = 2 * ni * [G_cd_in]
-    Gim = 2 * ni * np.array(Gim)
-    G = np.diag(np.hstack([Gw['out'], Gim]))
-    b = np.array([1, 0, 0])
-    Capacity_i = bcp_r['density_2'] * bcp_r['specific_heat_2'] * bcp_r['Surface'] * bcp_r['Thickness_2']  # insulation
-    C = np.diag([0, Capacity_i, 0])
-    f = np.array([1, 0, 1])
-    y = np.array([0, 0, 0])
-
-    Q = np.zeros((rad_surf_tot.shape[0], nt))
-    Q[:, 0] = bcp_r['SW_absorptivity_1'] * bcp_r['Surface'] * rad_surf_tot[str(uc)]
-    Q[:, (nt - 1)] = -1
-    uca = uc + 1
-    Q[:, 1:(nt - 1)] = 'NaN'
-
-    T = np.zeros((rad_surf_tot.shape[0], nq))
-    T[:, 0] = rad_surf_tot['To']
-    T[:, 1:nq] = 'NaN'
-
-    TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
-
-    return TCd, uca
-
-
 def indoor_rad(bcp_r, TCd, IG):
     Q = TCd['Q']
     lim = np.shape(Q)[1]
     for i in range(0, lim):
         if Q[0, i] == -1:
-            if np.isnan(bcp_r['SW_absorptivity_3']):
-                if np.isnan(bcp_r['SW_absorptivity_2']):
-                    x = bcp_r['SW_absorptivity_1'] * IG
-                    Q[:, i] = x[:, 0]
+            if np.isnan(bcp_r['SW_absorptivity_5']):
+                if np.isnan(bcp_r['SW_absorptivity_4']):
+                    if np.isnan(bcp_r['SW_absorptivity_3']):
+                        if np.isnan(bcp_r['SW_absorptivity_2']):
+                                x = bcp_r['SW_absorptivity_1'] * IG
+                                Q[:, i] = x[:, 0]
+                        else:
+                                x = bcp_r['SW_absorptivity_2'] * IG
+                                Q[:, i] = x[:, 0]
+                    else:
+                            x = bcp_r['SW_absorptivity_3'] * IG
+                            Q[:, i] = x[:, 0]
                 else:
-                    x = bcp_r['SW_absorptivity_2'] * IG
+                    x = bcp_r['SW_absorptivity_4'] * IG
                     Q[:, i] = x[:, 0]
             else:
-                x = bcp_r['SW_absorptivity_3'] * IG
+                x = bcp_r['SW_absorptivity_5'] * IG
                 Q[:, i] = x[:, 0]
     TCd['Q'] = Q  # replace Q in TCd with new Q
 
@@ -517,7 +266,7 @@ def u_assembly_c(TCd_c, rad_surf_tot):
     return u_c, rad_surf_tot
 
 
-def assembly(TCd):
+def assembly(TCd, tcd_dorwinsky, tcd_n):
     """
     Description: The assembly function is used to define how the nodes in the disassembled thermal circuits
     are merged together.
@@ -538,13 +287,22 @@ def assembly(TCd):
     IA_nodes = np.arange(len(TCd[str(0)]['A'][0]))  # create vector with the nodes for inside air
     print(IA_nodes)
 
-    # create assembly matrix
-    AssX = np.zeros((len(IA_nodes), 4))  # define size of AssX matrix
-    for i in range(0, len([AssX][0])):
+    # create assembly matrix containing ventilation, windows, doors and skylights
+    AssX = np.zeros((len(TCd_last_node), 4))
+    Ven_Nodes = [1, 0, 0, 0]
+    AssX[0] = Ven_Nodes
+    for i in range(0, (tcd_dorwinsky - 1)):
+        AssX[i+1, 0] = TCd_element_numbers[i + 1]  # set first column of row to element
+        AssX[i+1, 1] = TCd_last_node[i + 1]  # set second column to last node of that element
+        AssX[i+1, 2] = 0  # set third column to inside air element
+        AssX[i+1, 3] = 0  # set 4th column to element of inside air which connects to corresponding element
+
+    # insert walls, floors and roofs into assembly matrix
+    for i in range(tcd_dorwinsky, (tcd_n - 1)):
         AssX[i, 0] = TCd_element_numbers[i]  # set first column of row to element
         AssX[i, 1] = TCd_last_node[i]  # set second column to last node of that element
         AssX[i, 2] = 0  # set third column to inside air element
-        AssX[i, 3] = IA_nodes[i]  # set 4th column to element of inside air which connects to corresponding element
+        AssX[i, 3] = IA_nodes[(i - (tcd_dorwinsky - 1))]  # set 4th column to element of inside air which connects to corresponding element
 
     AssX = AssX.astype(int)
 
@@ -553,20 +311,40 @@ def assembly(TCd):
     return AssX
 
 
-def solver(TCAf, TCAc, TCAh, dt, u, u_c, t, Tisp, DeltaT, DeltaBlind, Kpc, Kph, rad_surf_tot):
+def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
     [Af, Bf, Cf, Df] = dm4bem.tc2ss(TCAf['A'], TCAf['G'], TCAf['b'], TCAf['C'], TCAf['f'], TCAf['y'])
     [Ac, Bc, Cc, Dc] = dm4bem.tc2ss(TCAc['A'], TCAc['G'], TCAc['b'], TCAc['C'], TCAc['f'], TCAc['y'])
     [Ah, Bh, Ch, Dh] = dm4bem.tc2ss(TCAh['A'], TCAh['G'], TCAh['b'], TCAh['C'], TCAh['f'], TCAh['y'])
+
+    # define values from input tensor
+    dt = ip.loc['dt']['Value']
+    Tisp = ip.loc['Tisp']['Value']
+    DeltaT = ip.loc['T_cooling']['Value'] - Tisp
+    DeltaBlind = ['DeltaBlind']['Value']
+
+    if DeltaBlind == -1:
+        u_c = u
+    else:
+        u_c = u_c
 
     # Maximum time-step
     dtmax = min(-2. / np.linalg.eig(Af)[0])
     print(f'Maximum time step f: {dtmax:.2f} s')
 
+    if dtmax >= dt:
+        raise ValueError('Free cooling time-step unstable.')
+
     dtmax = min(-2. / np.linalg.eig(Ac)[0])
     print(f'Maximum time step c: {dtmax:.2f} s')
 
+    if dtmax >= dt:
+        raise ValueError('Cooling time-step unstable.')
+
     dtmax = min(-2. / np.linalg.eig(Ah)[0])
     print(f'Maximum time step h: {dtmax:.2f} s')
+
+    if dtmax >= dt:
+        raise ValueError('Heating time-step unstable.')
 
     # Step response
     # -------------
@@ -610,7 +388,6 @@ def solver(TCAf, TCAc, TCAh, dt, u, u_c, t, Tisp, DeltaT, DeltaBlind, Kpc, Kph, 
     qHVAC = 0 * np.ones(u.shape[0])
 
     # integration in time
-
     I = np.eye(n_tC)
     for k in range(u.shape[0] - 1):
         if y[k] > Tisp[k] + DeltaBlind:
