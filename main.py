@@ -182,4 +182,6 @@ TCAf = dm4bem.TCAss(TCd_f, AssX)
 TCAc = dm4bem.TCAss(TCd_c, AssX)
 TCAh = dm4bem.TCAss(TCd_h, AssX)
 
-TCM_funcs.solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot)
+qHVAC = TCM_funcs.solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot)
+
+dhw_peak, dhw_cons = TCM_funcs.DHW()
