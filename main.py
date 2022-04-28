@@ -185,3 +185,5 @@ TCAh = dm4bem.TCAss(TCd_h, AssX)
 qHVAC = TCM_funcs.solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot)
 
 dhw_peak, dhw_cons = TCM_funcs.DHW()
+
+ann_cons, peak_power_space, peak_power_tot = TCM_funcs.heat_cons(qHVAC, dhw_peak, dhw_cons, ip.loc['dt']['Value'])

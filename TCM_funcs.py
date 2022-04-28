@@ -463,7 +463,28 @@ def DHW():
 
     return dhw_peak, dhw_cons
 
-def heat_cons(qHVAC, dhw_peak, dhw_cons):
+def heat_cons(qHVAC, dhw_peak, dhw_cons, dt):
+    qHVAC_diff = np.diff(qHVAC)
+    qHVAC_red = qHVAC
+    for i in range(0, qHVAC_diff.shape[0]):
+        a = int(qHVAC_diff[i])
+        if a in range(1, 5):
+            break
+        else:
+            qHVAC_red = np.delete(qHVAC_red, 0)
 
+    dt_h = dt / 3600
+    ann_cons_init = qHVAC_red[0] * (dt_h / 2)
+    ann_cons_space_end = qHVAC_red[-1] * (dt_h / 2)
+    ann_cons = 0
+    for i in range(1, (qHVAC_red.shape[0] - 1)):
+        ann_cons_part = qHVAC_red[i] * dt_h
+        ann_cons = ann_cons + ann_cons_part
+
+    ann_cons = ann_cons + dhw_cons + ann_cons_init + ann_cons_space_end
+
+    peak_power_space = max(qHVAC_red)
+
+    peak_power_tot = peak_power_space + dhw_peak
 
     return ann_cons, peak_power_space, peak_power_tot
