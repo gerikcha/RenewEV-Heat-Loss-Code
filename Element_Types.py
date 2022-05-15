@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import dm4bem
 
-def indoor_air(bcp_nodorwinsky, ip, rad_surf_tot):
+def indoor_air(bcp_nodorwinsky, bcp, ip, rad_surf_tot):
     """
        Input:
        bcp, surface column of bcp dataframe
@@ -23,17 +23,21 @@ def indoor_air(bcp_nodorwinsky, ip, rad_surf_tot):
     V = ip.loc['Building Volume']['Value']
     Qa = ip.loc['Qa']['Value']
     bcp_sur_nodorwinsky = bcp_nodorwinsky.Surface
+    bcp_diff = len(bcp) - len(bcp_nodorwinsky)
 
-    nt = len(bcp_nodorwinsky) + 1
-    nq = len(bcp_nodorwinsky)
+    nt = len(bcp) + 1
+    nq = len(bcp)
 
     nq_ones = np.ones(nq)
     A = np.diag(-nq_ones)
     A = np.c_[nq_ones, A]
 
     G = np.zeros(nq)
-    for i in range(0, len(G)):
-        G[i] = h_in * bcp_sur_nodorwinsky[i] * 1.2
+    for i in range(0, bcp_diff):
+        G[i] = 1000000
+
+    for i in range(bcp_diff, len(G)):
+        G[i] = h_in * bcp_sur_nodorwinsky[i - bcp_diff] * 1.2
     G = np.diag(G)
     b = np.zeros(nq)
     C = np.zeros(nt)
@@ -103,7 +107,7 @@ def window(bcp_r, rad_surf_tot, i):
     C = np.diag([0, 0])
     b = np.array([1, 0])
     f = np.array([1, 0])
-    y = np.array([0, 1])
+    y = np.array([0, 0])
 
     Q = np.zeros((rad_surf_tot.shape[0], nt))
     IG_surface = bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)]
@@ -141,7 +145,7 @@ def skylight(bcp_r, rad_surf_tot, i):
     C = np.diag([0, 0])
     b = np.array([1, 0])
     f = np.array([1, 0])
-    y = np.array([0, 1])
+    y = np.array([0, 0])
 
     Q = np.zeros((rad_surf_tot.shape[0], nt))
     IG_surface = bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)]
@@ -180,7 +184,7 @@ def door(bcp_r, rad_surf_tot, i):
     C = np.diag([0, 0])
     b = np.array([1, 0])
     f = np.array([0, 0])
-    y = np.array([0, 1])
+    y = np.array([0, 0])
 
     Q = np.zeros((rad_surf_tot.shape[0], nt))
     Q[:, :] = 'NaN'

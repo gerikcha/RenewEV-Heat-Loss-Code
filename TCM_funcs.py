@@ -12,23 +12,23 @@ import matplotlib.pyplot as plt
 import dm4bem
 
 
-def building_characteristics():
+def building_characteristics(bc_ex):
     """
     This code is designed to read an excel file which contains the characteristics of the building
     and create a data frame from it.
     """
 
-    bc = pd.read_excel("Building Characteristics.xlsx", sheet_name='Elements', na_values=["N"], keep_default_na=True,
+    bc = pd.read_excel(bc_ex, sheet_name='Elements', na_values=["N"], keep_default_na=True,
                        header=0)
 
     return bc
 
-def inputs():
-    ip = pd.read_excel("Building Characteristics.xlsx", sheet_name='Inputs', na_values=["N"], keep_default_na=True,
+def inputs(bc_ex):
+    ip = pd.read_excel(bc_ex, sheet_name='Inputs', na_values=["N"], keep_default_na=True,
                        index_col=0, usecols="A:B")
     return ip
 
-def thphprop(BCdf):
+def thphprop(BCdf, bc_ex):
     """
     Parameters
     ----------
@@ -64,7 +64,7 @@ def thphprop(BCdf):
             Soil p.994
     """
 
-    thphp = pd.read_excel("Building Characteristics.xlsx", sheet_name='Materials', header=0, usecols="A:H")
+    thphp = pd.read_excel(bc_ex, sheet_name='Materials', header=0, usecols="A:H")
 
     # add empty columns for thermo-physical properties
     BCdf = BCdf.reindex(columns=BCdf.columns.to_list() + ['rad_s', 'density_1', 'specific_heat_1', 'conductivity_1',
@@ -152,7 +152,7 @@ def rad(bcp, ip):
     [data, meta] = dm4bem.read_epw(filename, coerce_year=None)
     weather = data[["temp_air", "dir_n_rad", "dif_h_rad"]]
     del data
-    weather.index = weather.index.map(lambda t: t.replace(year=2000))
+    weather.index = weather.index.map(lambda t: t.replace(year=2023))
     weather = weather[(weather.index >= start_date) & (
             weather.index < end_date)]
     # Solar radiation on a tilted surface South
@@ -295,14 +295,14 @@ def assembly(TCd, tcd_dorwinsky, tcd_n):
         AssX[i+1, 0] = TCd_element_numbers[i + 1]  # set first column of row to element
         AssX[i+1, 1] = TCd_last_node[i + 1]  # set second column to last node of that element
         AssX[i+1, 2] = 0  # set third column to inside air element
-        AssX[i+1, 3] = 0  # set 4th column to element of inside air which connects to corresponding element
+        AssX[i+1, 3] = IA_nodes[i + 1]  # set 4th column to element of inside air which connects to corresponding element
 
     # insert walls, floors and roofs into assembly matrix
     for i in range(tcd_dorwinsky, (tcd_n - 1)):
         AssX[i, 0] = TCd_element_numbers[i]  # set first column of row to element
         AssX[i, 1] = TCd_last_node[i]  # set second column to last node of that element
         AssX[i, 2] = 0  # set third column to inside air element
-        AssX[i, 3] = IA_nodes[(i - (tcd_dorwinsky - 1))]  # set 4th column to element of inside air which connects to corresponding element
+        AssX[i, 3] = IA_nodes[i]  # set 4th column to element of inside air which connects to corresponding element
 
     AssX = AssX.astype(int)
 
@@ -320,7 +320,7 @@ def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
     dt = ip.loc['dt']['Value']
     Tisp = ip.loc['Tisp']['Value']
     DeltaT = ip.loc['T_cooling']['Value'] - Tisp
-    DeltaBlind = ['DeltaBlind']['Value']
+    DeltaBlind = ip.loc['DeltaBlind']['Value']
 
     if DeltaBlind == -1:
         u_c = u
@@ -331,20 +331,20 @@ def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
     dtmax = min(-2. / np.linalg.eig(Af)[0])
     print(f'Maximum time step f: {dtmax:.2f} s')
 
-    if dtmax >= dt:
+    if dtmax <= dt:
         raise ValueError('Free cooling time-step unstable.')
 
     dtmax = min(-2. / np.linalg.eig(Ac)[0])
     print(f'Maximum time step c: {dtmax:.2f} s')
 
-    if dtmax >= dt:
+    if dtmax <= dt:
         raise ValueError('Cooling time-step unstable.')
 
     dtmax = min(-2. / np.linalg.eig(Ah)[0])
     print(f'Maximum time step h: {dtmax:.2f} s')
 
-    if dtmax >= dt:
-        raise ValueError('Heating time-step unstable.')
+    if dtmax <= dt:
+         raise ValueError('Heating time-step unstable.')
 
     # Step response
     # -------------
@@ -433,8 +433,8 @@ def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
 
     return qHVAC
 
-def DHW():
-    DHW = pd.read_excel("Building Characteristics.xlsx", sheet_name='DHW', na_values=["N"], keep_default_na=True,
+def DHW(bc_ex):
+    DHW = pd.read_excel(bc_ex, sheet_name='DHW', na_values=["N"], keep_default_na=True,
                        header=0)
 
     n_shower = DHW.loc['n_shower']['Value']
