@@ -32,6 +32,6 @@ qHVAC_c, dt_c, bcp_c = main.HL(bc_ex)
 
 inp = "Building Inputs.xlsx"
 
-dhw_peak, dhw_cons = TCM_funcs.DHW(bc_ex)
+dhw_peak, dhw_cons = TCM_funcs.DHW(inp)
 
 ann_cons, peak_power_space, peak_power_tot = TCM_funcs.heat_cons(qHVAC_c, dhw_peak, dhw_cons, dt_c)
