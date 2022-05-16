@@ -26,12 +26,19 @@ Outputs:
 import main
 import TCM_funcs
 
-# calculate current building characteristics heat consumption and peak power
-bc_ex = "Current Building Characteristics.xlsx"
-qHVAC_c, dt_c, bcp_c = main.HL(bc_ex)
-
+# calculate domestic hot water requirements.
 inp = "Building Inputs.xlsx"
-
 dhw_peak, dhw_cons = TCM_funcs.DHW(inp)
 
-ann_cons, peak_power_space, peak_power_tot = TCM_funcs.heat_cons(qHVAC_c, dhw_peak, dhw_cons, dt_c)
+# calculate current building characteristics heat consumption and peak power
+bc_ex_c = "Current Building Characteristics.xlsx"
+qHVAC_c, dt_c, bcp_c = main.HL(bc_ex_c)
+Q_cons_heat_c, Q_cons_cool_c = TCM_funcs.heat_cons(qHVAC_c, dhw_cons, dt_c)
+
+# calculate current building characteristics heat consumption and peak power
+bc_ex_u = "Upgraded Building Characteristics.xlsx"
+qHVAC_u, dt_u, bcp_u = main.HL(bc_ex_u)
+Q_cons_heat_u, Q_cons_cool_u = TCM_funcs.heat_cons(qHVAC_u, dhw_cons, dt_u)
+
+# analysis of upgrading building and heating system on CO2 emissions and costs.
+
