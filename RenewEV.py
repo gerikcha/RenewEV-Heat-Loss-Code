@@ -55,7 +55,7 @@ bc_ex_u = "Upgraded Building Characteristics.xlsx"
 pp_u, bhlc_u, bcp_u = PeakPower.PP(inp, bc_ex_u)
 
 # analysis of upgrading building and heating system on CO2 emissions and costs.
-Results = Analysis.Analysis(bhlc_c, bhlc_u, inp)
+Results = Analysis.Analysis(bhlc_c, bhlc_u, inp, dhw_cons)
 
 # write to excel
 print('Current Peak Power is:', pp_c, 'kW')

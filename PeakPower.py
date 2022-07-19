@@ -158,6 +158,8 @@ def PP(inp, bc_ex):
         vent_hlc[i] = 0.34 * R_K['ACH'][i] * R_K['Volume (m3)'][i]
         vent_loss[i] = vent_hlc[i] * (R_K['Design Temperature'][i] - Gen['Value']['Ex_Temp'])
 
+    ## chimney ventilation losses
+    
     ## calculate heating-up capacity
     heat_up = np.zeros(R_K.shape[0])
     for i in range(0, len(R_K)):
