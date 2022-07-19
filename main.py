@@ -3,6 +3,8 @@ Started on 28 October 2021.
 Authors: L.Beber, E.Regev, C.Gerike-Roberts
 Code which models the dynamic thermal transfer in a building.
 """
+import snoop
+@snoop
 def HL(bc_ex):
     import numpy as np
     import pandas as pd
@@ -26,6 +28,13 @@ def HL(bc_ex):
 
     # Add thermo-physical properties
     bcp = TCM_funcs.thphprop(bc, bc_ex)
+    for column in bcp:
+        if bcp[column].dtype == 'float64':
+            bcp[column] = pd.to_numeric(bcp[column], downcast='float')
+        if bcp[column].dtype == 'int64':
+            bcp[column] = pd.to_numeric(bcp[column], downcast='integer')
+    bcp.info(memory_usage="deep")
+
 
     # Create bcp of all elements apart from windows, doors and skylights
     bcp_nodorwinsky = bcp[bcp['Element_Type'] != 'Window']  # remove window rows from bcp
@@ -54,27 +63,26 @@ def HL(bc_ex):
     TCd.update({str(1): Element_Types.ventilation(ip, Kpf, rad_surf_tot_nodorwinsky)})  # ventilation and heating
     uc = 2                                                                          # variable to track how many heat flows have been used
     IG = np.zeros([rad_surf_tot.shape[0], 1])                                    # set the radiation entering through windows to zero
-    tcd_n = 1
+    tcd_n = 2
 
     for i in range(0, len(bcp_win)):
         TCd_i, IGR = Element_Types.window(bcp_win.loc[i, :], rad_surf_tot_win, i)
-        TCd.update({str(tcd_n + i + 1): TCd_i})
+        TCd.update({str(tcd_n): TCd_i})
         IG = IG + IGR
         tcd_n = tcd_n + 1
 
     for i in range(0, len(bcp_dor)):
         TCd_i = Element_Types.door(bcp_dor.loc[i, :], rad_surf_tot_dor, i)
-        TCd.update({str(tcd_n + i + 1): TCd_i})
+        TCd.update({str(tcd_n): TCd_i})
         tcd_n = tcd_n + 1
 
     for i in range(0, len(bcp_sky)):
         TCd_i, IGR = Element_Types.skylight(bcp_sky.loc[i, :], rad_surf_tot_sky, i)
-        TCd.update({str(tcd_n + i + 1): TCd_i})
+        TCd.update({str(tcd_n): TCd_i})
         IG = IG + IGR
         tcd_n = tcd_n + 1
 
     tcd_dorwinsky = tcd_n
-    tcd_n = tcd_n + 1 # recalibrate tcd number tracker
 
     for i in range(0, len(bcp_nodorwinsky)):
         if bcp_nodorwinsky.Element_Type[i] == 'Wallex - 1 Layer':
@@ -141,19 +149,18 @@ def HL(bc_ex):
 
     IR_Surf = bcp_nodorwinsky.shape[0]
     IG = IG / IR_Surf                                                        #divide total indoor radiation by number of indoor surfaces
-
     TCd_f = copy.deepcopy(TCd)
 
     for i in range(0, len(bcp_nodorwinsky)):
-            TCd_i = TCM_funcs.indoor_rad(bcp_nodorwinsky.loc[i, :], TCd_f[str(tcd_dorwinsky + i + 1)], IG)
-            TCd_f[str(tcd_dorwinsky + i + 1)] = TCd_i
+            TCd_i = TCM_funcs.indoor_rad(bcp_nodorwinsky.loc[i, :], TCd_f[str(tcd_dorwinsky + i)], IG)
+            TCd_f[str(tcd_dorwinsky + i)] = TCd_i
 
     TCd_h = copy.deepcopy(TCd_f)
     TCd_c = copy.deepcopy(TCd)
 
     for i in range(0, len(bcp_nodorwinsky)):
-            TCd_i = TCM_funcs.indoor_rad_c(TCd_c[str(tcd_dorwinsky + i + 1)])
-            TCd_c[str(tcd_dorwinsky + i + 1)] = TCd_i
+            TCd_i = TCM_funcs.indoor_rad_c(TCd_c[str(tcd_dorwinsky + i)])
+            TCd_c[str(tcd_dorwinsky + i)] = TCd_i
 
     TCd_c[str(1)] = Element_Types.ventilation(ip, Kpc, rad_surf_tot_nodorwinsky)
     TCd_h[str(1)] = Element_Types.ventilation(ip, Kph, rad_surf_tot_nodorwinsky)
@@ -161,8 +168,10 @@ def HL(bc_ex):
     TCd_f = pd.DataFrame(TCd_f)
     TCd_c = pd.DataFrame(TCd_c)
     TCd_h = pd.DataFrame(TCd_h)
+    TCd_f.info(memory_usage="deep")
 
     u, rad_surf_tot = TCM_funcs.u_assembly(TCd_f, rad_surf_tot)
+    u.info(memory_usage="deep")
     u_c, rad_surf_tot = TCM_funcs.u_assembly_c(TCd_c, rad_surf_tot)
     AssX = TCM_funcs.assembly(TCd_f,tcd_dorwinsky,tcd_n)
 

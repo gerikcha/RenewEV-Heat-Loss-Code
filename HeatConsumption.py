@@ -17,7 +17,7 @@ import numpy as np
 
 def heat_cons(qHVAC, dhw_cons, dt):
     qHVAC_diff = np.diff(qHVAC)
-    qHVAC_red = qHVAC
+    qHVAC_red = qHVAC/1000
     for i in range(0, qHVAC_diff.shape[0]):
         a = int(qHVAC_diff[i])
         if a in range(1, 5):

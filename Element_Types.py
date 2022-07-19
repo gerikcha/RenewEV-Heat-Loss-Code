@@ -53,6 +53,15 @@ def indoor_air(bcp_nodorwinsky, bcp, ip, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0:nq] = 'NaN'
 
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
+
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
     return TCd
@@ -81,6 +90,15 @@ def ventilation(ip, Kpf, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], 2))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1] = T_heating
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     vent_c = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -112,14 +130,23 @@ def window(bcp_r, rad_surf_tot, i):
     Q = np.zeros((rad_surf_tot.shape[0], nt))
     IG_surface = bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)]
     IGR = np.zeros([rad_surf_tot.shape[0], 1])
-    IGR = IGR[:, 0] + (bcp_r['SW_transmittance_1'] * bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)])
+    IGR = IGR[:, 0] + (0.83 * bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)])
     IGR = np.array([IGR]).T
-    Q[:, 0] = bcp_r['SW_absorptivity_1'] * IG_surface
+    Q[:, 0] = 0.1 * IG_surface
     Q[:, 1:nt] = 'NaN'
 
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -150,14 +177,23 @@ def skylight(bcp_r, rad_surf_tot, i):
     Q = np.zeros((rad_surf_tot.shape[0], nt))
     IG_surface = bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)]
     IGR = np.zeros([rad_surf_tot.shape[0], 1])
-    IGR = IGR[:, 0] + (bcp_r['SW_transmittance_1'] * bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)])
+    IGR = IGR[:, 0] + (0.83 * bcp_r['Surface'] * rad_surf_tot.iloc[:, (i + 1)])
     IGR = np.array([IGR]).T
-    Q[:, 0] = bcp_r['SW_absorptivity_1'] * IG_surface
+    Q[:, 0] = 0.1 * IG_surface
     Q[:, 1:nt] = 'NaN'
 
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -192,6 +228,15 @@ def door(bcp_r, rad_surf_tot, i):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -239,6 +284,15 @@ def Ex_Wall_1(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -290,6 +344,15 @@ def Ex_Wall_2(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -345,6 +408,15 @@ def Ex_Wall_3(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -404,6 +476,15 @@ def Ex_Wall_4(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -468,6 +549,15 @@ def Ex_Wall_5(bcp_r, ip, rad_surf_tot, uc):
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
 
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
+
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
     return TCd, uca
@@ -511,6 +601,15 @@ def Roof_1(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -558,6 +657,15 @@ def Roof_2(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -608,6 +716,15 @@ def Roof_3(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -661,6 +778,15 @@ def Roof_4(bcp_r, ip, rad_surf_tot, uc):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -718,6 +844,15 @@ def Roof_5(bcp_r, ip, rad_surf_tot, uc):
     T[:, 0] = rad_surf_tot['To']
     T[:, 1:nq] = 'NaN'
 
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
+
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
     return TCd, uca
@@ -764,6 +899,15 @@ def Floor_1(bcp_r, ip, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = ip.loc['Tg']['Value']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -815,6 +959,15 @@ def Floor_2(bcp_r, ip, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = ip.loc['Tg']['Value']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -870,6 +1023,15 @@ def Floor_3(bcp_r, ip, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = ip.loc['Tg']['Value']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -929,6 +1091,15 @@ def Floor_4(bcp_r, ip, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = ip.loc['Tg']['Value']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 
@@ -992,6 +1163,15 @@ def Floor_5(bcp_r, ip, rad_surf_tot):
     T = np.zeros((rad_surf_tot.shape[0], nq))
     T[:, 0] = ip.loc['Tg']['Value']
     T[:, 1:nq] = 'NaN'
+
+    A = A.astype(np.float32)
+    G = G.astype(np.float32)
+    C = C.astype(np.float32)
+    b = b.astype(np.float32)
+    f = f.astype(np.float32)
+    y = y.astype(np.float32)
+    Q = Q.astype(np.float32)
+    T = T.astype(np.float32)
 
     TCd = {'A': A, 'G': G, 'b': b, 'C': C, 'f': f, 'y': y, 'Q': Q, 'T': T}
 

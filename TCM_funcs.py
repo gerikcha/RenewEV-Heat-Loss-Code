@@ -167,7 +167,9 @@ def rad(bcp, ip):
     Φt = pd.DataFrame(Φt)
     # Interpolate weather data for time step dt
     data = pd.concat([weather['temp_air'], Φt], axis=1)
+    data = data.astype(np.float32)
     data = data.resample(str(dt) + 'S').interpolate(method='linear')
+    data.info(memory_usage = "deep")
     data = data.rename(columns={'temp_air': 'To'})
 
     # time
@@ -217,6 +219,7 @@ def indoor_rad_c(TCd_c):
 def u_assembly(TCd, rad_surf_tot):
     rad_surf_tot = rad_surf_tot.loc[:, rad_surf_tot.any()]
     u = np.empty((len(rad_surf_tot), 1))  # create u matrix
+    u = u.astype(np.float32)
     for i in range(0, TCd.shape[1]):
         TCd_i = TCd[str(i)]
         T = TCd_i['T']
@@ -244,6 +247,7 @@ def u_assembly(TCd, rad_surf_tot):
 def u_assembly_c(TCd_c, rad_surf_tot):
     rad_surf_tot = rad_surf_tot.loc[:, rad_surf_tot.any()]
     u_c = np.empty((len(rad_surf_tot), 1))  # create u matrix
+    u_c = u_c.astype(np.float32)
     for i in range(0, TCd_c.shape[1]):
         TCd_i = TCd_c[str(i)]
         T = TCd_i['T']
@@ -312,6 +316,24 @@ def assembly(TCd, tcd_dorwinsky, tcd_n):
 
 
 def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
+    TCAf['A'] = TCAf['A'].astype(np.float32)
+    TCAf['G'] = TCAf['G'].astype(np.float32)
+    TCAf['b'] = TCAf['b'].astype(np.float32)
+    TCAf['C'] = TCAf['C'].astype(np.float32)
+    TCAf['f'] = TCAf['f'].astype(np.float32)
+    TCAf['y'] = TCAf['y'].astype(np.float32)
+    TCAc['A'] = TCAc['A'].astype(np.float32)
+    TCAc['G'] = TCAc['G'].astype(np.float32)
+    TCAc['b'] = TCAc['b'].astype(np.float32)
+    TCAc['C'] = TCAc['C'].astype(np.float32)
+    TCAc['f'] = TCAc['f'].astype(np.float32)
+    TCAc['y'] = TCAc['y'].astype(np.float32)
+    TCAh['A'] = TCAh['A'].astype(np.float32)
+    TCAh['G'] = TCAh['G'].astype(np.float32)
+    TCAh['b'] = TCAh['b'].astype(np.float32)
+    TCAh['C'] = TCAh['C'].astype(np.float32)
+    TCAh['f'] = TCAh['f'].astype(np.float32)
+    TCAh['y'] = TCAh['y'].astype(np.float32)
     [Af, Bf, Cf, Df] = dm4bem.tc2ss(TCAf['A'], TCAf['G'], TCAf['b'], TCAf['C'], TCAf['f'], TCAf['y'])
     [Ac, Bc, Cc, Dc] = dm4bem.tc2ss(TCAc['A'], TCAc['G'], TCAc['b'], TCAc['C'], TCAc['f'], TCAc['y'])
     [Ah, Bh, Ch, Dh] = dm4bem.tc2ss(TCAh['A'], TCAh['G'], TCAh['b'], TCAh['C'], TCAh['f'], TCAh['y'])
@@ -387,8 +409,13 @@ def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
     y[0] = Tisp[0]
     qHVAC = 0 * np.ones(u.shape[0])
 
+    y = y.astype(np.float32)
+    qHVAC = qHVAC.astype(np.float32)
+    Tisp = Tisp.astype(np.float32)
+    temp_exp = temp_exp.astype(np.float32)
     # integration in time
     I = np.eye(n_tC)
+    I = I.astype(np.float32)
     for k in range(u.shape[0] - 1):
         if y[k] > Tisp[k] + DeltaBlind:
             us = u_c
@@ -432,31 +459,3 @@ def solver(TCAf, TCAc, TCAh, ip, u, u_c, t, Kpc, Kph, rad_surf_tot):
     plt.show()
 
     return qHVAC
-
-
-
-def heat_cons(qHVAC, dhw_peak, dhw_cons, dt):
-    qHVAC_diff = np.diff(qHVAC)
-    qHVAC_red = qHVAC
-    for i in range(0, qHVAC_diff.shape[0]):
-        a = int(qHVAC_diff[i])
-        if a in range(1, 5):
-            break
-        else:
-            qHVAC_red = np.delete(qHVAC_red, 0)
-
-    dt_h = dt / 3600
-    ann_cons_init = qHVAC_red[0] * (dt_h / 2)
-    ann_cons_space_end = qHVAC_red[-1] * (dt_h / 2)
-    ann_cons = 0
-    for i in range(1, (qHVAC_red.shape[0] - 1)):
-        ann_cons_part = qHVAC_red[i] * dt_h
-        ann_cons = ann_cons + ann_cons_part
-
-    ann_cons = ann_cons + dhw_cons + ann_cons_init + ann_cons_space_end
-
-    peak_power_space = max(qHVAC_red)
-
-    peak_power_tot = peak_power_space + dhw_peak
-
-    return ann_cons, peak_power_space, peak_power_tot
