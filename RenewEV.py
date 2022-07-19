@@ -48,17 +48,17 @@ dhw_peak, dhw_cons = DHW.DHW(inp)
 
 # peak power calculation for current building
 bc_ex_c = "Current Building Characteristics.xlsx"
-pp_c, bcp_c = PeakPower.PP(inp, bc_ex_c)
+pp_c, bhlc_c, bcp_c = PeakPower.PP(inp, bc_ex_c)
 
 # peak power calculation for upgraded building
 bc_ex_u = "Upgraded Building Characteristics.xlsx"
-pp_u, bcp_u = PeakPower.PP(inp, bc_ex_u)
+pp_u, bhlc_u, bcp_u = PeakPower.PP(inp, bc_ex_u)
 
 # analysis of upgrading building and heating system on CO2 emissions and costs.
-Results = Analysis.Analysis(Q_cons_heat_c, Q_cons_heat_u, inp)
+Results = Analysis.Analysis(bhlc_c, bhlc_u, inp)
 
 # write to excel
 print('Current Peak Power is:', pp_c, 'kW')
 print('Upgraded Peak Power is:', pp_u, 'kW')
-print('Annual Heat Consumption is:', Q_cons_heat_c, 'kWh')
+
 

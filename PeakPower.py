@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import TCM_funcs
 
-def PP(bcp, inp, bc_ex):
+def PP(inp, bc_ex):
     ### calculate heat losses due to building fabric
     ## define building characteristics
     bc = TCM_funcs.building_characteristics(bc_ex)
@@ -34,10 +34,10 @@ def PP(bcp, inp, bc_ex):
         if np.isnan(n):
             e = bcp['Element_Type'][i]
             if 'Wallex' in bcp['Element_Type'][i]:
-                if np.isnan(bcp['density_5'][i]):
-                    if np.isnan(bcp['density_4'][i]):
-                        if np.isnan(bcp['density_3'][i]):
-                            if np.isnan(bcp['density_2'][i]):
+                if np.isnan(bcp['conductivity_5'][i]):
+                    if np.isnan(bcp['conductivity_4'][i]):
+                        if np.isnan(bcp['conductivity_3'][i]):
+                            if np.isnan(bcp['conductivity_2'][i]):
                                 R1 = bcp['Thickness_1'][i] / bcp['conductivity_1'][i]
                                 R_tot = Rsi_w + R1 + Rso_w
                                 bcp['U-Value'][i] = 1 / R_tot
@@ -68,10 +68,10 @@ def PP(bcp, inp, bc_ex):
                     R_tot = Rsi_w + R1 + R2 + R3 + R4 + R5 + Rso_w
                     bcp['U-Value'][i] = 1 / R_tot
             elif 'Floor' == bcp['Element_Type'][i]:
-                if np.isnan(bcp['density_5'][i]):
-                    if np.isnan(bcp['density_4'][i]):
-                        if np.isnan(bcp['density_3'][i]):
-                            if np.isnan(bcp['density_2'][i]):
+                if np.isnan(bcp['conductivity_5'][i]):
+                    if np.isnan(bcp['conductivity_4'][i]):
+                        if np.isnan(bcp['conductivity_3'][i]):
+                            if np.isnan(bcp['conductivity_2'][i]):
                                 R1 = bcp['Thickness_1'][i] / bcp['conductivity_1'][i]
                                 R_tot = Rsi_f + R1 + Rso_f
                                 bcp['U-Value'][i] = 1 / R_tot
@@ -102,10 +102,10 @@ def PP(bcp, inp, bc_ex):
                     R_tot = Rsi_f + R1 + R2 + R3 + R4 + R5 + Rso_f
                     bcp['U-Value'][i] = 1 / R_tot
             else:
-                if np.isnan(bcp['density_5'][i]):
-                    if np.isnan(bcp['density_4'][i]):
-                        if np.isnan(bcp['density_3'][i]):
-                            if np.isnan(bcp['density_2'][i]):
+                if np.isnan(bcp['conductivity_5'][i]):
+                    if np.isnan(bcp['conductivity_4'][i]):
+                        if np.isnan(bcp['conductivity_3'][i]):
+                            if np.isnan(bcp['conductivity_2'][i]):
                                 R1 = bcp['Thickness_1'][i] / bcp['conductivity_1'][i]
                                 R_tot = Rsi_r + R1 + Rso_r
                                 bcp['U-Value'][i] = 1 / R_tot
@@ -147,29 +147,31 @@ def PP(bcp, inp, bc_ex):
         e = bcp['Element_Code'][i]
         r = R_K[R_K.apply(lambda row: row.astype(str).str.contains(e, case=False).any(), axis=1)]
         fabric_hlc[i] = bcp['fk'][i] * bcp['U-Value'][i] * bcp['Surface'][i]
-        D_Temp = r['D_Temp'][0]
+        D_Temp = r['Design Temperature'][0]
         Ex_Temp = Gen['Value']['Ex_Temp']
         fabric_loss[i] = fabric_hlc[i] * (D_Temp - Ex_Temp)
 
     ## calculate ventilation losses
     vent_loss = np.zeros(R_K.shape[0])
+    vent_hlc = np.zeros(R_K.shape[0])
     for i in range(0, len(R_K)):
-        vent_hlc = 0.34 * R_K['ACH'][i] * R_K['Volume'][i]
-        vent_loss[i] = vent_hlc * (R_K['D_Temp'][i] - Gen['Value']['Ex_Temp'])
+        vent_hlc[i] = 0.34 * R_K['ACH'][i] * R_K['Volume (m3)'][i]
+        vent_loss[i] = vent_hlc[i] * (R_K['Design Temperature'][i] - Gen['Value']['Ex_Temp'])
 
     ## calculate heating-up capacity
-    heat_up = np.zeros(bcp.shape[0])
-    for i in range(0, len(bcp)):
-        if np.isnan(bcp['fRH'][i]):
-            heat_up[i] = 0
-        else:
-            heat_up[i] = bcp['Surface'][i] * bcp['fRH'][i]
+    heat_up = np.zeros(R_K.shape[0])
+    for i in range(0, len(R_K)):
+        heat_up[i] = R_K['Floor Area (m2)'][i] * R_K['fRH'][i]
 
     ## calculate peak power required
     f_losses_tot = np.sum(fabric_loss)
     v_losses_tot = np.sum(vent_loss)
     h_losses_tot = np.sum(heat_up)
-
     pp = (f_losses_tot + v_losses_tot + h_losses_tot) / 1000
 
-    return(pp, bcp)
+    ## calculate bhlc
+    f_bhlc_tot=np.sum(fabric_hlc)
+    v_bhlc_tot=np.sum(vent_hlc)
+    bhlc = f_bhlc_tot + v_bhlc_tot
+
+    return(pp, bhlc, bcp)

@@ -23,9 +23,13 @@ Outputs:
 import pandas as pd
 import numpy as np
 
-def Analysis(Q_cons_heat_c, Q_cons_heat_u, inp):
+def Analysis(bhlc_c, bhlc_u, inp):
     HS = pd.read_excel(inp, sheet_name='Heating System', na_values=["N"], keep_default_na=True,
                        index_col=0, header=0, usecols="A:B")
+
+    # determine annual heating consumption from HDD data.
+    Q_cons_heat_c = bhlc_c * (HS['Value']['HDD'] * 24)
+    Q_cons_heat_u = bhlc_u * (HS['Value']['HDD'] * 24)
 
     # calculate annual fuel consumption for current and upgraded building
     if np.isnan(HS['Value']['Boiler_Eff']):
