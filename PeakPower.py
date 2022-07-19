@@ -159,7 +159,9 @@ def PP(inp, bc_ex):
         vent_loss[i] = vent_hlc[i] * (R_K['Design Temperature'][i] - Gen['Value']['Ex_Temp'])
 
     ## chimney ventilation losses
-    
+    vent_chim_bhlc = Gen['Value']['Chim_Flow'] * 0.33
+    vent_chim_loss = vent_chim_bhlc * (18 - Gen['Value']['Ex_Temp'])
+
     ## calculate heating-up capacity
     heat_up = np.zeros(R_K.shape[0])
     for i in range(0, len(R_K)):
@@ -167,12 +169,12 @@ def PP(inp, bc_ex):
 
     ## calculate peak power required
     f_losses_tot = np.sum(fabric_loss)
-    v_losses_tot = np.sum(vent_loss)
+    v_losses_tot = np.sum(vent_loss) + vent_chim_loss
     h_losses_tot = np.sum(heat_up)
     pp = (f_losses_tot + v_losses_tot + h_losses_tot) / 1000
 
     ## calculate bhlc
-    f_bhlc_tot=np.sum(fabric_hlc)
+    f_bhlc_tot = np.sum(fabric_hlc) + vent_chim_bhlc
     v_bhlc_tot=np.sum(vent_hlc)
     bhlc = f_bhlc_tot + v_bhlc_tot
 
