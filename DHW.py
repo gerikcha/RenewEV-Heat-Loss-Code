@@ -39,6 +39,6 @@ def DHW(inp):
 
     dhw_cons = dhw_peak * t_daily * t_active
 
-    return dhw_peak, dhw_cons
+    return dhw_peak, dhw_cons, sum_hw
 
     

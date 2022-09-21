@@ -137,26 +137,70 @@ def PP(inp, bc_ex):
                     bcp['U-Value'][i] = 1 / R_tot
 
     ## import room key
-    R_K = pd.read_excel(bc_ex, sheet_name='Room Key', na_values=["N"], keep_default_na=True,
-                       index_col=0, header=0)
+    R_K = pd.read_excel(bc_ex, sheet_name='Room Key', na_values=["N"], keep_default_na=True, header=0)
+
 
     ## calculate fabric losses
-    fabric_loss = np.zeros(bcp.shape[0])
-    fabric_hlc = np.zeros(bcp.shape[0])
+    fabric_loss = np.zeros([bcp.shape[0], 1])
+    fabric_hlc = np.zeros([bcp.shape[0], 1])
+    room_fabric_loss = np.zeros([R_K.shape[0], 1])
+    room_fabric_hlc = np.zeros([R_K.shape[0], 1])
+    R_K.insert(1, 'HLC (W/K)', room_fabric_hlc)
+    R_K.insert(1, 'PP (W)', room_fabric_loss)
     for i in range(0, len(bcp)):
         e = bcp['Element_Code'][i]
-        r = R_K[R_K.apply(lambda row: row.astype(str).str.contains(e, case=False).any(), axis=1)]
+        r, c = np.where(R_K == e)
+        r = r[0]
         fabric_hlc[i] = bcp['fk'][i] * bcp['U-Value'][i] * bcp['Surface'][i]
-        D_Temp = r['Design Temperature'][0]
-        Ex_Temp = Gen['Value']['Ex_Temp']
-        fabric_loss[i] = fabric_hlc[i] * (D_Temp - Ex_Temp)
+        D_Temp = R_K['Design Temperature'][r]
+        if np.isnan(D_Temp):
+            R_K['HLC (W/K)'][r] = R_K['HLC (W/K)'][r] + fabric_hlc[i]
+        else:
+            Ex_Temp = Gen['Value']['Ex_Temp']
+            fabric_loss[i] = fabric_hlc[i] * (D_Temp - Ex_Temp)
+            R_K['HLC (W/K)'][r] = R_K['HLC (W/K)'][r] + fabric_hlc[i]
+            R_K['PP (W)'][r] = R_K['PP (W)'][r] + fabric_loss[i]
+
+    ## insert losses for elements into dataframes
+    bcp.insert(2, 'HLC (W/K)', fabric_hlc)
+    bcp.insert(2, 'PP (W)', fabric_loss)
+
+    # unheated space losses
+    IW = pd.read_excel(bc_ex, sheet_name='IW', na_values=["N"], keep_default_na=True, header=0)
+    for i in range(0, len(IW)):
+        e = IW['Element Code'][i]
+        u = IW['Unheated Room'][i]
+        r, c = np.where(R_K == u)
+        r = r[0]
+        ur_hlc = R_K['HLC (W/K)'][r]
+        t, c = np.where(bcp == e)
+        t = t[0]
+        e_hlc = bcp['HLC (W/K)'][t]
+        bu = ur_hlc / (e_hlc + ur_hlc)
+        x, c = np.where(R_K == e)
+        x = x[0]
+        r_hlc = R_K['HLC (W/K)'][x]
+        R_K['HLC (W/K)'][x] = (r_hlc - e_hlc) + (e_hlc * bu)
+        bcp['HLC (W/K)'][t] = e_hlc * bu
+
+    for i in range(0, len(R_K)):
+        if np.isnan(R_K['Design Temperature'][i]):
+            R_K['PP (W)'][i] = 0
+            R_K['HLC (W/K)'][i] = 0
+        else:
+            R_K['PP (W)'][i] = R_K['PP (W)'][i]
+            R_K['HLC (W/K)'][i] = R_K['HLC (W/K)'][i]
 
     ## calculate ventilation losses
     vent_loss = np.zeros(R_K.shape[0])
     vent_hlc = np.zeros(R_K.shape[0])
     for i in range(0, len(R_K)):
-        vent_hlc[i] = 0.34 * R_K['ACH'][i] * R_K['Volume (m3)'][i]
-        vent_loss[i] = vent_hlc[i] * (R_K['Design Temperature'][i] - Gen['Value']['Ex_Temp'])
+        if np.isnan(R_K['Design Temperature'][i]):
+            vent_hlc[i] = 0
+            vent_loss[i] = 0
+        else:
+            vent_hlc[i] = 0.34 * R_K['ACH (1/h)'][i] * R_K['Volume (m3)'][i]
+            vent_loss[i] = vent_hlc[i] * (R_K['Design Temperature'][i] - Gen['Value']['Ex_Temp'])
 
     ## chimney ventilation losses
     vent_chim_bhlc = Gen['Value']['Chim_Flow'] * 0.33
@@ -165,17 +209,19 @@ def PP(inp, bc_ex):
     ## calculate heating-up capacity
     heat_up = np.zeros(R_K.shape[0])
     for i in range(0, len(R_K)):
-        heat_up[i] = R_K['Floor Area (m2)'][i] * R_K['fRH'][i]
-
+        if np.isnan(R_K['Design Temperature'][i]):
+            heat_up[i] = 0
+        else:
+            heat_up[i] = R_K['Floor Area (m2)'][i] * R_K['fRH'][i]
     ## calculate peak power required
-    f_losses_tot = np.sum(fabric_loss)
+    f_losses_tot = np.sum(R_K['PP (W)'])
     v_losses_tot = np.sum(vent_loss) + vent_chim_loss
     h_losses_tot = np.sum(heat_up)
     pp = (f_losses_tot + v_losses_tot + h_losses_tot) / 1000
 
     ## calculate bhlc
-    f_bhlc_tot = np.sum(fabric_hlc) + vent_chim_bhlc
-    v_bhlc_tot=np.sum(vent_hlc)
+    f_bhlc_tot = np.sum(R_K['HLC (W/K)'])
+    v_bhlc_tot = np.sum(vent_hlc) + vent_chim_bhlc
     bhlc = f_bhlc_tot + v_bhlc_tot
 
     return(pp, bhlc, bcp)

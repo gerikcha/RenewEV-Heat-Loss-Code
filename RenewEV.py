@@ -33,7 +33,7 @@ import snoop
 
 # calculate domestic hot water requirements.
 inp = "Building Inputs.xlsx"
-dhw_peak, dhw_cons = DHW.DHW(inp)
+dhw_peak, dhw_cons, sum_hw = DHW.DHW(inp)
 
 # # calculate current building characteristics heat consumption and peak power
 # bc_ex_c = "Current Building Characteristics.xlsx"
@@ -56,6 +56,15 @@ pp_u, bhlc_u, bcp_u = PeakPower.PP(inp, bc_ex_u)
 
 # analysis of upgrading building and heating system on CO2 emissions and costs.
 Results = Analysis.Analysis(bhlc_c, bhlc_u, inp, dhw_cons)
+
+pp_tot_c = pp_c + dhw_peak
+pp_tot_u = pp_u + dhw_peak
+
+#analyse upgraded benefits
+current_loss = bcp_c['PP (W)']
+upgraded_loss = bcp_u['PP (W)']
+improv = current_loss - upgraded_loss
+bcp_u.insert(2, 'Reduction (W)', improv)
 
 # write to excel
 print('Current Peak Power is:', pp_c, 'kW')
