@@ -145,8 +145,8 @@ def rad(bcp, ip):
     t_end = ip.loc['t_end']['Value']
 
     filename = WF
-    start_date = t_start
-    end_date = t_end
+    start_date = t_start.strftime('%Y/%m/%d %H:%M:%S')
+    end_date = t_end.strftime('%Y/%m/%d %H:%M:%S')
 
     # Read weather data from Energyplus .epw file
     [data, meta] = dm4bem.read_epw(filename, coerce_year=None)

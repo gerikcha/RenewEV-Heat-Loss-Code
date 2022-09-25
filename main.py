@@ -3,8 +3,8 @@ Started on 28 October 2021.
 Authors: L.Beber, E.Regev, C.Gerike-Roberts
 Code which models the dynamic thermal transfer in a building.
 """
-import snoop
-@snoop
+
+
 def HL(bc_ex):
     import numpy as np
     import pandas as pd
@@ -28,12 +28,12 @@ def HL(bc_ex):
 
     # Add thermo-physical properties
     bcp = TCM_funcs.thphprop(bc, bc_ex)
-    for column in bcp:
-        if bcp[column].dtype == 'float64':
-            bcp[column] = pd.to_numeric(bcp[column], downcast='float')
-        if bcp[column].dtype == 'int64':
-            bcp[column] = pd.to_numeric(bcp[column], downcast='integer')
-    bcp.info(memory_usage="deep")
+    # for column in bcp:
+    #     if bcp[column].dtype == 'float64':
+    #         bcp[column] = pd.to_numeric(bcp[column], downcast='float')
+    #     if bcp[column].dtype == 'int64':
+    #         bcp[column] = pd.to_numeric(bcp[column], downcast='integer')
+    # bcp.info(memory_usage="deep")
 
 
     # Create bcp of all elements apart from windows, doors and skylights

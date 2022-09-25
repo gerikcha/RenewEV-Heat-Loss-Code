@@ -35,10 +35,10 @@ import snoop
 inp = "Building Inputs.xlsx"
 dhw_peak, dhw_cons, sum_hw = DHW.DHW(inp)
 
-# # calculate current building characteristics heat consumption and peak power
-# bc_ex_c = "Current Building Characteristics.xlsx"
-# qHVAC_c, dt_c, bcp_c = main.HL(bc_ex_c)
-# Q_cons_heat_c, Q_cons_cool_c = HeatConsumption.heat_cons(qHVAC_c, dhw_cons, dt_c)
+# calculate current building characteristics heat consumption and peak power
+bc_ex_c = "Current Building Characteristics.xlsx"
+qHVAC_c, dt_c, bcp_c = main.HL(bc_ex_c)
+Q_cons_heat_c, Q_cons_cool_c = HeatConsumption.heat_cons(qHVAC_c, dhw_cons, dt_c)
 #
 # # calculate current building characteristics heat consumption and peak power
 # bc_ex_u = "Upgraded Building Characteristics.xlsx"
